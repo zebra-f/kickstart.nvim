@@ -617,6 +617,7 @@ require('lazy').setup({
         -- clangd = {},
         -- gopls = {},
         -- pyright = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -656,6 +657,9 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'black',
+        'djlint',
+        'prettierd',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -670,6 +674,7 @@ require('lazy').setup({
             require('lspconfig')[server_name].setup(server)
           end,
         },
+        automatic_installation = true,
       }
     end,
   },
@@ -709,10 +714,15 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        -- python = { 'isort', black' },
+        python = { 'black' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        typescript = { 'prettierd', 'prettier', stop_after_first = true },
+        html = { 'prettierd', 'prettier', stop_after_first = true },
+        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -765,7 +775,8 @@ require('lazy').setup({
             luasnip.lsp_expand(args.body)
           end,
         },
-        completion = { completeopt = 'menu,menuone,noinsert' },
+        preselect = 'None', -- added
+        completion = { completeopt = 'menu,menuone,noinsert,noselect' }, -- added noselect
 
         -- For an understanding of why these mappings were
         -- chosen, you will need to read `:help ins-completion`
@@ -791,7 +802,11 @@ require('lazy').setup({
           --['<CR>'] = cmp.mapping.confirm { select = true },
           --['<Tab>'] = cmp.mapping.select_next_item(),
           --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
+          --['<Tab>'] = cmp.mapping.select_next_item(),
+          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
           --  completions whenever it has completion options available.
@@ -830,24 +845,6 @@ require('lazy').setup({
           { name = 'path' },
         },
       }
-    end,
-  },
-
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
-    init = function()
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
-
-      -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
     end,
   },
 
@@ -905,9 +902,9 @@ require('lazy').setup({
         -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
         --  If you are experiencing weird indenting issues, add the language to
         --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
+        additional_vim_regex_highlighting = { 'ruby', 'python' }, -- aded 'python'
       },
-      indent = { enable = true, disable = { 'ruby' } },
+      indent = { enable = true, disable = { 'ruby', 'python' } }, -- added 'python'
     },
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
@@ -937,7 +934,7 @@ require('lazy').setup({
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!
@@ -967,3 +964,105 @@ require('lazy').setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+--
+--
+--
+local wk = require 'which-key'
+wk.add {
+  { '<leader>f', group = 'Custom [F]unctionality' },
+  {
+    '<leader>ff',
+    -- '<cmd>Neotree<CR>'
+    function()
+      local lazy_util = require 'lazy.core.config'
+      if lazy_util.plugins['neo-tree.nvim'] then -- Note: use the full plugin name
+        vim.cmd 'Neotree'
+      else
+        print 'Neotree is not loaded or available'
+      end
+    end,
+    desc = 'Open [F]ile Tree',
+  },
+  {
+    '<leader>ft',
+    '<cmd>tabnew<CR>',
+    desc = 'Open New [T]ab',
+  },
+  {
+    '<leader>fa',
+    '<cmd>AerialToggle!<CR>',
+    desc = 'Open [A]erial',
+  },
+  {
+    '<leader>fQ', -- lowercase is too risky
+    '<cmd>q!<CR>',
+    desc = '[Q]uit without saving',
+  },
+  { '<leader>fd', group = 'Goto [D]efinition' },
+  {
+    '<leader>fdt',
+    '<cmd>tab split | lua vim.lsp.buf.definition()<CR>',
+    desc = 'Open Defnition In [T]ab',
+  },
+  {
+    '<leader>fds',
+    '<cmd>split | lua vim.lsp.buf.definition()<CR>',
+    desc = 'Open Defnition in [S]plit',
+  },
+  {
+    '<leader>fdv',
+    '<cmd>vsplit | lua vim.lsp.buf.definition()<CR>',
+    desc = 'Open Defnition in [V]ertical Split',
+  },
+  {
+    '<leader>fdp',
+    "<cmd>lua require('goto-preview').goto_preview_definition()<CR>",
+    desc = 'Open Definition in [P]review Floating Window',
+  },
+  { '<leader>fs', group = '[S]plit' },
+  {
+    '<leader>fss',
+    '<cmd>split | lua vim.lsp.buf.definition()<CR>',
+    desc = '[S]plit',
+  },
+  {
+    '<leader>fsv',
+    '<cmd>vsplit | lua vim.lsp.buf.definition()<CR>',
+    desc = '[V]ertical Split',
+  },
+  {
+    '<leader>fs+',
+    '<cmd>vertical resize +20<CR>',
+    desc = 'Vertical Resize [+]20',
+  },
+  {
+    '<leader>fs-',
+    '<cmd>vertical resize -20<CR>',
+    desc = 'Vertical Resize [-]20',
+  },
+}
+
+vim.wo.relativenumber = true
+
+vim.keymap.set('n', '<A-h>', '<C-w>h', { desc = 'Move to left window' })
+vim.keymap.set('n', '<A-j>', '<C-w>j', { desc = 'Move to lower window' })
+vim.keymap.set('n', '<A-k>', '<C-w>k', { desc = 'Move to upper window' })
+vim.keymap.set('n', '<A-l>', '<C-w>l', { desc = 'Move to right window' })
+
+-- delete without copying
+vim.keymap.set('n', 'C', '"_C', { noremap = true })
+vim.keymap.set('v', 'C', '"_C', { noremap = true })
+
+vim.keymap.set('n', 'D', '"_D', { noremap = true })
+vim.keymap.set('v', 'D', '"_D', { noremap = true })
+
+-- vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
+--   pattern = "*.html",
+--   command = "set filetype=htmldjango"
+-- })
+-- vim.filetype.add({
+--   extension = {
+--     html = "htmldjango",
+--   }
+-- })
+--
