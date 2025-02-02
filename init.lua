@@ -1056,6 +1056,8 @@ vim.keymap.set('v', 'C', '"_C', { noremap = true })
 vim.keymap.set('n', 'D', '"_D', { noremap = true })
 vim.keymap.set('v', 'D', '"_D', { noremap = true })
 
+-- uncomment the following when working with Django
+--
 -- vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
 --   pattern = "*.html",
 --   command = "set filetype=htmldjango"
